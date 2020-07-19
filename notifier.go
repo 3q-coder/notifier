@@ -25,7 +25,9 @@ type Storage interface {
 }
 
 type Operator interface {
-	// web
-	SendNotification(client *websocket.Conn)
-	RegisterUser(username, password string) (*User, error)
+	// notification
+	SubscribeToNotifications(username string, client *websocket.Conn)
+	SendNotification(note Notification)
+	SendNotificationAll(message string)
+	InitNewsChanel(username string)
 }

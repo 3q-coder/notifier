@@ -6,7 +6,10 @@ func initializeRoutes() {
 
 	Router.GET("/", showIndexPage)
 	Router.GET("/news", ensureLoggedIn(), showNewsPage)
-	Router.GET("/notifications", initNoteSocket)
+	Router.GET("/notifications", ensureLoggedIn(), initNoteSocket)
+
+	Router.POST("/send-note", ensureApiKey(), sendNote)
+	Router.POST("/send-note-all", ensureApiKey(), sendNoteAll)
 
 	userRoutes := Router.Group("/u")
 	{

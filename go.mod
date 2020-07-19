@@ -3,7 +3,6 @@ module github.com/DryginAlexander/notifier
 go 1.13
 
 require (
-	github.com/DryginAlexander/OpenPlasma v0.0.0-20200716140653-ee6a38e00780
 	github.com/corpix/uarand v0.1.1 // indirect
 	github.com/gin-gonic/gin v1.6.3
 	github.com/gorilla/websocket v1.4.2

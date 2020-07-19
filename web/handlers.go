@@ -1,11 +1,12 @@
 package web
 
 import (
+	"errors"
 	"log"
-	"math/rand"
 	"net/http"
-	"strconv"
+	"strings"
 
+	"github.com/DryginAlexander/notifier"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 )
@@ -27,16 +28,12 @@ func showNewsPage(c *gin.Context) {
 }
 
 func initNoteSocket(c *gin.Context) {
+	username := c.Query("token")
 	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
-	go operator.SendNotification(ws)
-}
-
-func generateSessionToken() string {
-	// TODO use secure way
-	return strconv.FormatInt(rand.Int63(), 16)
+	go operator.SubscribeToNotifications(username, ws)
 }
 
 func showRegistrationPage(c *gin.Context) {
@@ -53,16 +50,14 @@ func register(c *gin.Context) {
 	username := c.PostForm("username")
 	password := c.PostForm("password")
 
-	if _, err := operator.RegisterUser(username, password); err == nil {
-		// If the user is created, set the token in a cookie and log the user in
-		token := generateSessionToken()
-		c.SetCookie("token", token, 3600, "", "", false, true)
-		c.Set("is_logged_in", true)
+	var err error
+	if strings.TrimSpace(password) == "" {
+		err = errors.New("The password can't be empty")
+	} else if !storage.IsUsernameAvailable(username) {
+		err = errors.New("The username isn't available")
+	}
 
-		render(c, gin.H{"title": "Successful registration & Login"},
-			"login-successful.html")
-
-	} else {
+	if err != nil {
 		// If the username/password combination is invalid,
 		// show the error message on the login page
 		c.HTML(
@@ -73,8 +68,23 @@ func register(c *gin.Context) {
 				"ErrorMessage": err.Error(),
 			},
 		)
-
 	}
+
+	user := notifier.User{
+		Username: username,
+		Password: password,
+	}
+	storage.CreateUser(&user)
+
+	// If the user is created, set the token in a cookie and log the user in
+	token := username
+	c.SetCookie("token", token, 3600, "", "", false, false)
+	c.Set("is_logged_in", true)
+
+	render(c, gin.H{"title": "Successful registration & Login"},
+		"login-successful.html")
+
+	operator.InitNewsChanel(username)
 }
 
 func showLoginPage(c *gin.Context) {
@@ -88,13 +98,15 @@ func performLogin(c *gin.Context) {
 	password := c.PostForm("password")
 
 	if storage.IsUserValid(username, password) {
-		token := generateSessionToken()
-		c.SetCookie("token", token, 3600, "", "", false, true)
+		// TODO use secure token
+		token := username
+		c.SetCookie("token", token, 3600, "", "", false, false)
 		c.Set("is_logged_in", true)
 
 		render(c, gin.H{
 			"title": "Successful Login"}, "login-successful.html")
 
+		operator.InitNewsChanel(username)
 	} else {
 		c.HTML(http.StatusBadRequest, "login.html", gin.H{
 			"ErrorTitle":   "Login Failed",
@@ -120,4 +132,19 @@ func render(c *gin.Context, data gin.H, templateName string) {
 	default:
 		c.HTML(http.StatusOK, templateName, data)
 	}
+}
+
+func sendNote(c *gin.Context) {
+	username := c.PostForm("username")
+	msg := c.PostForm("message")
+	note := notifier.Notification{
+		Username: username,
+		Message:  msg,
+	}
+	operator.SendNotification(note)
+}
+
+func sendNoteAll(c *gin.Context) {
+	msg := c.PostForm("message")
+	operator.SendNotificationAll(msg)
 }

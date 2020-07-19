@@ -9,12 +9,26 @@
     <div class="row"></div>
 </div>
 <script>
+    function getCookie(cname) {
+        var name = cname + "=";
+        var decodedCookie = decodeURIComponent(document.cookie);
+        var ca = decodedCookie.split(';');
+        for(var i = 0; i <ca.length; i++) {
+            var c = ca[i];
+            while (c.charAt(0) == ' ') {
+                c = c.substring(1);
+            }
+            if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length);
+            }
+        }
+        return "";
+    }
 
     function newMessage(msg) {
         // dont do this!
         // completly insecure to XSS
-        msgNode = '<div class="col-sm">'+msg.name+' &laquo;'+msg.email+'&raquo;</div>'
-            + '<div class="col-sm">'+msg.subject+'</div>';
+        msgNode = '<div class="col-sm">'+msg.message+'</div>';
 
         var node = document.createElement("div");
         node.className = "row";
@@ -24,7 +38,8 @@
         msgs.insertBefore(node, msgs.childNodes[0]);
     }
     
-    conn = new WebSocket("ws://127.0.0.1:8080/notifications");
+    var token = getCookie("token");
+    conn = new WebSocket("ws://127.0.0.1:8080/notifications?token="+token);
     conn.onmessage = function (event) {
         newMessage(JSON.parse(event.data));
     };

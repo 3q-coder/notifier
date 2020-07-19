@@ -5,9 +5,13 @@ import (
 )
 
 type Operator struct {
-	storage notifier.Storage
+	noteChanals map[string]chan string
+	storage     notifier.Storage
 }
 
 func NewOperator(stor notifier.Storage) Operator {
-	return Operator{stor}
+	return Operator{
+		make(map[string]chan string),
+		stor,
+	}
 }
