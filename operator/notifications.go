@@ -1,6 +1,7 @@
 package operator
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
@@ -10,16 +11,23 @@ import (
 )
 
 func (o *Operator) SubscribeToNotifications(username string, ws *websocket.Conn) {
-	// TODO send close chan if exists
+	// close existing connection
+	if client, ok := o.clients[username]; ok == true {
+		client.finish()
+	}
 
 	// init channel
+	ctx, finish := context.WithCancel(context.Background())
 	inChan := make(chan string, 10)
-	o.noteChanals[username] = inChan
+	o.clients[username] = Client{
+		channel: inChan,
+		finish:  finish,
+	}
 
 	// TODO load messages from db
 
 	go reader(ws)
-	go writer(inChan, ws)
+	go writer(ctx, inChan, ws)
 }
 
 func reader(ws *websocket.Conn) {
@@ -35,7 +43,7 @@ func reader(ws *websocket.Conn) {
 	}
 }
 
-func writer(inChan <-chan string, ws *websocket.Conn) {
+func writer(ctx context.Context, inChan <-chan string, ws *websocket.Conn) {
 	pingTicker := time.NewTicker(settings.PingPeriod)
 	defer func() {
 		pingTicker.Stop()
@@ -43,6 +51,8 @@ func writer(inChan <-chan string, ws *websocket.Conn) {
 	}()
 	for {
 		select {
+		case <-ctx.Done():
+			return
 		case msg := <-inChan:
 			// TODO add msg respond
 
@@ -51,11 +61,11 @@ func writer(inChan <-chan string, ws *websocket.Conn) {
 			ws.SetWriteDeadline(time.Now().Add(settings.WriteWait))
 			w, err := ws.NextWriter(websocket.TextMessage)
 			if err != nil {
-				break
+				return
 			}
 			_, err = w.Write(data)
 			if err != nil {
-				break
+				return
 			}
 
 			if err := w.Close(); err != nil {
@@ -72,12 +82,12 @@ func writer(inChan <-chan string, ws *websocket.Conn) {
 
 func (o *Operator) SendNotification(note notifier.Notification) {
 	// TODO handle user is not exist
-	outChan := o.noteChanals[note.Username]
-	outChan <- note.Message
+	client := o.clients[note.Username]
+	client.channel <- note.Message
 }
 
 func (o *Operator) SendNotificationAll(message string) {
-	for _, outChan := range o.noteChanals {
-		outChan <- message
+	for _, client := range o.clients {
+		client.channel <- message
 	}
 }
