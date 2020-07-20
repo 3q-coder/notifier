@@ -11,8 +11,10 @@ func setUserStatus() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if token, err := c.Cookie("token"); err == nil || token != "" {
 			c.Set("is_logged_in", true)
+			c.Set("username", token)
 		} else if token := c.Query("token"); token != "" {
 			c.Set("is_logged_in", true)
+			c.Set("username", token)
 		} else {
 			c.Set("is_logged_in", false)
 		}

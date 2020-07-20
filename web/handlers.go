@@ -28,7 +28,8 @@ func showNewsPage(c *gin.Context) {
 }
 
 func initNoteSocket(c *gin.Context) {
-	username := c.Query("token")
+	nameInterface, _ := c.Get("username")
+	username := nameInterface.(string)
 	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
 		log.Fatal(err)
