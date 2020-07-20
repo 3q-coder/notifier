@@ -8,9 +8,13 @@ import (
 )
 
 func (o *Operator) SubscribeToNotifications(username string, client *websocket.Conn) {
+	// init channel
+	o.noteChanals[username] = make(chan string, 10)
+
+	// TODO load messages from db
+
 	inChan := o.noteChanals[username]
 	var msg string
-
 	for {
 		msg = <-inChan
 		data, _ := json.Marshal(map[string]string{"message": msg})
@@ -22,11 +26,6 @@ func (o *Operator) SubscribeToNotifications(username string, client *websocket.C
 		w.Write(data)
 		w.Close()
 	}
-}
-
-func (o *Operator) InitNewsChanel(username string) {
-	// TODO load messages from db
-	o.noteChanals[username] = make(chan string, 10)
 }
 
 func (o *Operator) SendNotification(note notifier.Notification) {

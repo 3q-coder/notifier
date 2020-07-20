@@ -84,8 +84,6 @@ func register(c *gin.Context) {
 
 	render(c, gin.H{"title": "Successful registration & Login"},
 		"login-successful.html")
-
-	operator.InitNewsChanel(username)
 }
 
 func showLoginPage(c *gin.Context) {
@@ -106,8 +104,6 @@ func performLogin(c *gin.Context) {
 
 		render(c, gin.H{
 			"title": "Successful Login"}, "login-successful.html")
-
-		operator.InitNewsChanel(username)
 	} else {
 		c.HTML(http.StatusBadRequest, "login.html", gin.H{
 			"ErrorTitle":   "Login Failed",

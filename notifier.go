@@ -29,5 +29,4 @@ type Operator interface {
 	SubscribeToNotifications(username string, client *websocket.Conn)
 	SendNotification(note Notification)
 	SendNotificationAll(message string)
-	InitNewsChanel(username string)
 }
