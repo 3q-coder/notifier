@@ -3,6 +3,7 @@ package settings
 import (
 	"os"
 	"strconv"
+	"time"
 
 	"github.com/joho/godotenv"
 )
@@ -16,8 +17,11 @@ var (
 	DBUser    string
 	DBPw      string
 	// web
-	Port   int
-	APIKey string
+	Port       int
+	APIKey     string
+	WriteWait  time.Duration
+	PongWait   time.Duration
+	PingPeriod time.Duration
 )
 
 func Init(dotenvFileName string) error {
@@ -43,6 +47,22 @@ func Init(dotenvFileName string) error {
 		return err
 	}
 	APIKey = os.Getenv("API_KEY")
+
+	t, err := strconv.Atoi(os.Getenv("WRITE_WAIT"))
+	if err != nil {
+		return err
+	}
+	WriteWait = time.Duration(t) * time.Second
+	t, err = strconv.Atoi(os.Getenv("PONG_WAIT"))
+	if err != nil {
+		return err
+	}
+	PongWait = time.Duration(t) * time.Second
+	t, err = strconv.Atoi(os.Getenv("PING_PERIOD"))
+	if err != nil {
+		return err
+	}
+	PingPeriod = time.Duration(t) * time.Second
 
 	return nil
 }

@@ -43,6 +43,12 @@
     conn.onmessage = function (event) {
         newMessage(JSON.parse(event.data));
     };
+    conn.onclose = function (event) {
+        var msg = {
+            "message": "Connection closed",
+        };
+        newMessage(msg);
+    };
 </script>
 
 <!--Embed the footer.html template at this location-->
