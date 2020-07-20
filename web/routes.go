@@ -11,6 +11,8 @@ func initializeRoutes() {
 	Router.POST("/send-note", ensureApiKey(), sendNote)
 	Router.POST("/send-note-all", ensureApiKey(), sendNoteAll)
 
+	Router.GET("/metrics", ensureApiKey(), metrics)
+
 	userRoutes := Router.Group("/u")
 	{
 		userRoutes.GET("/register", ensureNotLoggedIn(), showRegistrationPage)

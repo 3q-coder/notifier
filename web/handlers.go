@@ -2,6 +2,7 @@ package web
 
 import (
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -11,20 +12,15 @@ import (
 	"github.com/gorilla/websocket"
 )
 
+// news -------------------------------------------------------------
+// ------------------------------------------------------------------
+
 var upgrader = websocket.Upgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
 	CheckOrigin: func(r *http.Request) bool {
 		return true
 	},
-}
-
-func showIndexPage(c *gin.Context) {
-	render(c, gin.H{"title": "Home Page"}, "index.html")
-}
-
-func showNewsPage(c *gin.Context) {
-	render(c, gin.H{"title": "News Page"}, "news.html")
 }
 
 func initNoteSocket(c *gin.Context) {
@@ -35,6 +31,45 @@ func initNoteSocket(c *gin.Context) {
 		log.Fatal(err)
 	}
 	go operator.SubscribeToNotifications(username, ws)
+}
+
+func sendNote(c *gin.Context) {
+	username := c.PostForm("username")
+	msg := c.PostForm("message")
+	note := notifier.Notification{
+		Username: username,
+		Message:  msg,
+		Sent:     false,
+	}
+	operator.SendNotification(&note)
+}
+
+func sendNoteAll(c *gin.Context) {
+	msg := c.PostForm("message")
+	operator.SendNotificationAll(msg)
+}
+
+func showNewsPage(c *gin.Context) {
+	render(c, gin.H{"title": "News Page"}, "news.html")
+}
+
+func metrics(c *gin.Context) {
+	allClients, _ := storage.UsersNumber()
+	onlineClients := operator.OnlineClientsNumber()
+	allNotes, _ := storage.NotesNumber()
+	sentNotes, _ := storage.SentNotesNumber()
+
+	output := fmt.Sprintf("all_clients %d\nonline_clients %d\nall_note %d\nsent_note %d\n",
+		allClients, onlineClients, allNotes, sentNotes)
+
+	c.String(http.StatusOK, output)
+}
+
+// authentification -------------------------------------------------
+// ------------------------------------------------------------------
+
+func showIndexPage(c *gin.Context) {
+	render(c, gin.H{"title": "Home Page"}, "index.html")
 }
 
 func showRegistrationPage(c *gin.Context) {
@@ -129,19 +164,4 @@ func render(c *gin.Context, data gin.H, templateName string) {
 	default:
 		c.HTML(http.StatusOK, templateName, data)
 	}
-}
-
-func sendNote(c *gin.Context) {
-	username := c.PostForm("username")
-	msg := c.PostForm("message")
-	note := notifier.Notification{
-		Username: username,
-		Message:  msg,
-	}
-	operator.SendNotification(note)
-}
-
-func sendNoteAll(c *gin.Context) {
-	msg := c.PostForm("message")
-	operator.SendNotificationAll(msg)
 }

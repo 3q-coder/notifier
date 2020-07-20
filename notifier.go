@@ -11,6 +11,7 @@ type User struct {
 type Notification struct {
 	Username string
 	Message  string
+	Sent     bool
 }
 
 type Storage interface {
@@ -19,14 +20,21 @@ type Storage interface {
 	IsUserValid(username, password string) bool
 	CreateUser(user *User) error
 	// notification
-	CreateNotification(note *Notification) error
-	NotificationsByUsername(name string) ([]Notification, error)
-	DeleteNotification(note *Notification) error
+	CreateNotification(note *Notification) (uint, error)
+	CreateNotificationAll(message string) error
+	SetSentNoteStatus(id uint) error
+	NotificationsByUsername(name string) ([]Notification, []uint, error)
+	// metrics
+	UsersNumber() (int, error)
+	NotesNumber() (int, error)
+	SentNotesNumber() (int, error)
 }
 
 type Operator interface {
 	// notification
 	SubscribeToNotifications(username string, client *websocket.Conn)
-	SendNotification(note Notification)
+	SendNotification(note *Notification)
 	SendNotificationAll(message string)
+	// metrics
+	OnlineClientsNumber() int
 }

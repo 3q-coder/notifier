@@ -17,7 +17,6 @@ var (
 	DBUser    string
 	DBPw      string
 	// web
-	Port       int
 	APIKey     string
 	WriteWait  time.Duration
 	PongWait   time.Duration
@@ -41,11 +40,6 @@ func Init(dotenvFileName string) error {
 	DBPw = os.Getenv("DB_PW")
 
 	// web settings
-	var err error
-	Port, err = strconv.Atoi(os.Getenv("PORT"))
-	if err != nil {
-		return err
-	}
 	APIKey = os.Getenv("API_KEY")
 
 	t, err := strconv.Atoi(os.Getenv("WRITE_WAIT"))

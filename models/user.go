@@ -31,9 +31,12 @@ func (s *Storage) IsUserValid(username, password string) bool {
 
 func (s *Storage) CreateUser(_user *notifier.User) error {
 	user := User{User: *_user}
+	err := s.db.Create(&user).Error
+	return err
+}
 
-	if err := s.db.Create(&user).Error; err != nil {
-		return err
-	}
-	return nil
+func (s *Storage) UsersNumber() (int, error) {
+	var count int
+	err := s.db.Table("users").Count(&count).Error
+	return count, err
 }

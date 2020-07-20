@@ -16,22 +16,40 @@ func (o *Operator) SubscribeToNotifications(username string, ws *websocket.Conn)
 		client.finish()
 	}
 
+	// TODO rewrite - for not delete own client
+	time.Sleep(3 * time.Second)
+
 	// init channel
 	ctx, finish := context.WithCancel(context.Background())
-	inChan := make(chan string, 10)
+	inChan := make(chan ChanMessage, 10)
 	o.clients[username] = Client{
-		channel: inChan,
-		finish:  finish,
+		username: username,
+		channel:  inChan,
+		finish:   finish,
 	}
 
-	// TODO load messages from db
+	// load unsent message to channel
+	notes, ids, _ := o.storage.NotificationsByUsername(username)
+	for i, note := range notes {
+		inChan <- ChanMessage{
+			text: note.Message,
+			id:   ids[i],
+		}
+	}
 
-	go reader(ws)
-	go writer(ctx, inChan, ws)
+	go reader(finish, ws)
+	go writer(ctx, inChan, ws, o.storage)
+
+	// remove connection
+	<-ctx.Done()
+	delete(o.clients, username)
 }
 
-func reader(ws *websocket.Conn) {
-	defer ws.Close()
+func reader(finish func(), ws *websocket.Conn) {
+	defer func() {
+		finish()
+		ws.Close()
+	}()
 	ws.SetReadLimit(512)
 	ws.SetReadDeadline(time.Now().Add(settings.PongWait))
 	ws.SetPongHandler(func(string) error { ws.SetReadDeadline(time.Now().Add(settings.PongWait)); return nil })
@@ -43,7 +61,7 @@ func reader(ws *websocket.Conn) {
 	}
 }
 
-func writer(ctx context.Context, inChan <-chan string, ws *websocket.Conn) {
+func writer(ctx context.Context, inChan <-chan ChanMessage, ws *websocket.Conn, storage notifier.Storage) {
 	pingTicker := time.NewTicker(settings.PingPeriod)
 	defer func() {
 		pingTicker.Stop()
@@ -56,7 +74,7 @@ func writer(ctx context.Context, inChan <-chan string, ws *websocket.Conn) {
 		case msg := <-inChan:
 			// TODO add msg respond
 
-			data, _ := json.Marshal(map[string]string{"message": msg})
+			data, _ := json.Marshal(map[string]string{"message": msg.text})
 
 			ws.SetWriteDeadline(time.Now().Add(settings.WriteWait))
 			w, err := ws.NextWriter(websocket.TextMessage)
@@ -71,6 +89,8 @@ func writer(ctx context.Context, inChan <-chan string, ws *websocket.Conn) {
 			if err := w.Close(); err != nil {
 				return
 			}
+
+			storage.SetSentNoteStatus(msg.id)
 		case <-pingTicker.C:
 			ws.SetWriteDeadline(time.Now().Add(settings.WriteWait))
 			if err := ws.WriteMessage(websocket.PingMessage, []byte{}); err != nil {
@@ -80,14 +100,34 @@ func writer(ctx context.Context, inChan <-chan string, ws *websocket.Conn) {
 	}
 }
 
-func (o *Operator) SendNotification(note notifier.Notification) {
-	// TODO handle user is not exist
-	client := o.clients[note.Username]
-	client.channel <- note.Message
+func (o *Operator) SendNotification(note *notifier.Notification) {
+	id, _ := o.storage.CreateNotification(note)
+
+	// send message if client online
+	if client, ok := o.clients[note.Username]; ok == true {
+		client.channel <- ChanMessage{
+			text: note.Message,
+			id:   id,
+		}
+
+	}
 }
 
 func (o *Operator) SendNotificationAll(message string) {
+	o.storage.CreateNotificationAll(message)
+
+	// send message to all online clients
 	for _, client := range o.clients {
-		client.channel <- message
+		notes, ids, _ := o.storage.NotificationsByUsername(client.username)
+		for i, note := range notes {
+			client.channel <- ChanMessage{
+				text: note.Message,
+				id:   ids[i],
+			}
+		}
 	}
+}
+
+func (o *Operator) OnlineClientsNumber() int {
+	return len(o.clients)
 }

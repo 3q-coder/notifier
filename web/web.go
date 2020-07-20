@@ -17,6 +17,5 @@ func Init(stor notifier.Storage, oper notifier.Operator) {
 	Router.LoadHTMLGlob("./web/templates/*")
 	initializeRoutes()
 
-	// TODO settings.port
 	Router.Run()
 }

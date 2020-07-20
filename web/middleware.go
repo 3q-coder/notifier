@@ -43,7 +43,8 @@ func ensureNotLoggedIn() gin.HandlerFunc {
 
 func ensureApiKey() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		if c.PostForm("API_KEY") != settings.APIKey {
+		if c.PostForm("API_KEY") != settings.APIKey &&
+			c.Query("API_KEY") != settings.APIKey {
 			c.AbortWithStatus(http.StatusUnauthorized)
 		}
 	}

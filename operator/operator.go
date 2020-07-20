@@ -4,14 +4,20 @@ import (
 	"github.com/DryginAlexander/notifier"
 )
 
+type ChanMessage struct {
+	text string
+	id   uint
+}
+
 type Client struct {
-	channel chan string
-	finish  func()
+	username string
+	channel  chan ChanMessage
+	finish   func()
 }
 
 type Operator struct {
 	clients map[string]Client
-	storage     notifier.Storage
+	storage notifier.Storage
 }
 
 func NewOperator(stor notifier.Storage) Operator {
