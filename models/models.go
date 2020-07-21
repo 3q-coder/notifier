@@ -12,7 +12,7 @@ import (
 )
 
 type Storage struct {
-	db *gorm.DB
+	DB *gorm.DB
 }
 
 func NewStorage() Storage {
@@ -39,16 +39,16 @@ func NewStorage() Storage {
 	db, _ := gorm.Open(dialect, DBConnStr)
 	// DB.SetLogger(logger)
 	return Storage{
-		db: db,
+		DB: db,
 	}
 }
 
 func (s *Storage) CloseDB() {
-	s.db.Close()
+	s.DB.Close()
 }
 
 func (s *Storage) MigrateDB() error {
-	m := gormigrate.New(s.db, gormigrate.DefaultOptions, []*gormigrate.Migration{
+	m := gormigrate.New(s.DB, gormigrate.DefaultOptions, []*gormigrate.Migration{
 		// inital migration
 		{
 			ID: "202007182355",

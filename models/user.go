@@ -12,7 +12,7 @@ type User struct {
 
 func (s *Storage) IsUsernameAvailable(username string) bool {
 	var user User
-	if err := s.db.First(&user, "username = ?", username).Error; err != nil {
+	if err := s.DB.First(&user, "username = ?", username).Error; err != nil {
 		return true
 	}
 	return false
@@ -20,7 +20,7 @@ func (s *Storage) IsUsernameAvailable(username string) bool {
 
 func (s *Storage) IsUserValid(username, password string) bool {
 	var user User
-	if err := s.db.First(&user, "username = ?", username).Error; err != nil {
+	if err := s.DB.First(&user, "username = ?", username).Error; err != nil {
 		return false
 	}
 	if user.Password != password {
@@ -31,12 +31,12 @@ func (s *Storage) IsUserValid(username, password string) bool {
 
 func (s *Storage) CreateUser(_user *notifier.User) error {
 	user := User{User: *_user}
-	err := s.db.Create(&user).Error
+	err := s.DB.Create(&user).Error
 	return err
 }
 
 func (s *Storage) UsersNumber() (int, error) {
 	var count int
-	err := s.db.Table("users").Count(&count).Error
+	err := s.DB.Table("users").Count(&count).Error
 	return count, err
 }

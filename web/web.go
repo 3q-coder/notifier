@@ -9,7 +9,7 @@ var Router *gin.Engine
 var operator notifier.Operator
 var storage notifier.Storage
 
-func Init(stor notifier.Storage, oper notifier.Operator) {
+func Init(stor notifier.Storage, oper notifier.Operator) *gin.Engine {
 	operator = oper
 	storage = stor
 
@@ -17,5 +17,5 @@ func Init(stor notifier.Storage, oper notifier.Operator) {
 	Router.LoadHTMLGlob("./web/templates/*")
 	initializeRoutes()
 
-	Router.Run()
+	return Router
 }

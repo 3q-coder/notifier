@@ -23,5 +23,6 @@ func main() {
 
 	oper := operator.NewOperator(&stor)
 
-	web.Init(&stor, &oper)
+	router := web.Init(&stor, &oper)
+	router.Run()
 }

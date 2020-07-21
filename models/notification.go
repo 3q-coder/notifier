@@ -12,13 +12,13 @@ type Notification struct {
 
 func (s *Storage) CreateNotification(_note *notifier.Notification) (uint, error) {
 	note := Notification{Notification: *_note}
-	err := s.db.Create(&note).Error
+	err := s.DB.Create(&note).Error
 	return note.ID, err
 }
 
 func (s *Storage) CreateNotificationAll(message string) error {
 	var users []*User
-	err := s.db.Set("gorm:auto_preload", true).Find(&users).Error
+	err := s.DB.Set("gorm:auto_preload", true).Find(&users).Error
 	if err != nil {
 		return err
 	}
@@ -39,18 +39,18 @@ func (s *Storage) CreateNotificationAll(message string) error {
 
 func (s *Storage) SetSentNoteStatus(id uint) error {
 	var note Notification
-	err := s.db.Set("gorm:auto_preload", true).
+	err := s.DB.Set("gorm:auto_preload", true).
 		Where("id = ?", id).First(&note).Error
 	if err != nil {
 		return err
 	}
 	note.Notification.Sent = true
-	return s.db.Save(note).Error
+	return s.DB.Save(note).Error
 }
 
 func (s *Storage) NotificationsByUsername(name string) ([]notifier.Notification, []uint, error) {
 	notes := []*Notification{}
-	err := s.db.Set("gorm:auto_preload", true).
+	err := s.DB.Set("gorm:auto_preload", true).
 		Where("username = ?", name).Where("sent = ?", false).Find(&notes).Error
 	var notifier_notes []notifier.Notification
 	var ids []uint
@@ -63,13 +63,13 @@ func (s *Storage) NotificationsByUsername(name string) ([]notifier.Notification,
 
 func (s *Storage) NotesNumber() (int, error) {
 	var count int
-	err := s.db.Table("notifications").Count(&count).Error
+	err := s.DB.Table("notifications").Count(&count).Error
 	return count, err
 }
 
 func (s *Storage) SentNotesNumber() (int, error) {
 	var count int
-	err := s.db.Model(&Notification{}).Where("sent = ?", true).
+	err := s.DB.Model(&Notification{}).Where("sent = ?", true).
 		Count(&count).Error
 	return count, err
 }
