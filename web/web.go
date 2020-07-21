@@ -2,6 +2,7 @@ package web
 
 import (
 	"github.com/DryginAlexander/notifier"
+	"github.com/DryginAlexander/notifier/settings"
 	"github.com/gin-gonic/gin"
 )
 
@@ -14,7 +15,7 @@ func Init(stor notifier.Storage, oper notifier.Operator) *gin.Engine {
 	storage = stor
 
 	Router = gin.Default()
-	Router.LoadHTMLGlob("./web/templates/*")
+	Router.LoadHTMLGlob(settings.StaticPath)
 	initializeRoutes()
 
 	return Router

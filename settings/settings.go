@@ -21,6 +21,7 @@ var (
 	WriteWait  time.Duration
 	PongWait   time.Duration
 	PingPeriod time.Duration
+	StaticPath string
 )
 
 func Init(dotenvFileName string) error {
@@ -57,6 +58,8 @@ func Init(dotenvFileName string) error {
 		return err
 	}
 	PingPeriod = time.Duration(t) * time.Second
+
+	StaticPath = os.Getenv("STATIC")
 
 	return nil
 }
