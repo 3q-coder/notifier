@@ -24,7 +24,7 @@ import (
 var client = http.Client{Timeout: time.Duration(5 * time.Second)}
 
 func initSettingsAndDB(t *testing.T) (models.Storage, operator.Operator, *gin.Engine) {
-	err := settings.Init("../env/test.env")
+	err := settings.Init("../settings/test.env")
 	assert.Nil(t, err, "failed to initialize settings")
 	stor := models.NewStorage()
 	err = stor.MigrateDB()

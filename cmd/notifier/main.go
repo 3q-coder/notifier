@@ -12,7 +12,7 @@ import (
 func main() {
 
 	fmt.Println("init settings")
-	_ = settings.Init("./env/dev.env")
+	_ = settings.Init("./settings/dev.env")
 
 	fmt.Println("connecting to db")
 	stor := models.NewStorage()
