@@ -9,9 +9,9 @@ type User struct {
 }
 
 type Notification struct {
-	Username string
+	Username string `json:",omitempty"`
 	Message  string
-	Sent     bool
+	Sent     bool `json:"-"`
 }
 
 type Storage interface {

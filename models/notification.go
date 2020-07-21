@@ -63,7 +63,7 @@ func (s *Storage) NotificationsByUsername(name string) ([]notifier.Notification,
 
 func (s *Storage) NotesNumber() (int, error) {
 	var count int
-	err := s.DB.Table("notifications").Count(&count).Error
+	err := s.DB.Model(&Notification{}).Count(&count).Error
 	return count, err
 }
 

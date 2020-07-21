@@ -1,6 +1,8 @@
 package operator
 
 import (
+	"sync"
+
 	"github.com/DryginAlexander/notifier"
 )
 
@@ -18,11 +20,14 @@ type Client struct {
 type Operator struct {
 	clients map[string]Client
 	storage notifier.Storage
+	mutex   *sync.Mutex
 }
 
 func NewOperator(stor notifier.Storage) Operator {
+	mu := &sync.Mutex{}
 	return Operator{
 		make(map[string]Client),
 		stor,
+		mu,
 	}
 }

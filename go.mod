@@ -9,5 +9,6 @@ require (
 	github.com/icrowley/fake v0.0.0-20180203215853-4178557ae428
 	github.com/jinzhu/gorm v1.9.14
 	github.com/joho/godotenv v1.3.0
+	github.com/stretchr/testify v1.4.0
 	gopkg.in/gormigrate.v1 v1.6.0
 )

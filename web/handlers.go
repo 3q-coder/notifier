@@ -1,8 +1,10 @@
 package web
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"strings"
@@ -34,19 +36,22 @@ func initNoteSocket(c *gin.Context) {
 }
 
 func sendNote(c *gin.Context) {
-	username := c.PostForm("username")
-	msg := c.PostForm("message")
-	note := notifier.Notification{
-		Username: username,
-		Message:  msg,
-		Sent:     false,
-	}
+	data, _ := ioutil.ReadAll(c.Request.Body)
+
+	note := notifier.Notification{}
+	_ = json.Unmarshal(data, &note)
+	note.Sent = false
+
 	operator.SendNotification(&note)
 }
 
 func sendNoteAll(c *gin.Context) {
-	msg := c.PostForm("message")
-	operator.SendNotificationAll(msg)
+	data, _ := ioutil.ReadAll(c.Request.Body)
+
+	note := &notifier.Notification{}
+	_ = json.Unmarshal(data, note)
+
+	operator.SendNotificationAll(note.Message)
 }
 
 func showNewsPage(c *gin.Context) {

@@ -37,6 +37,6 @@ func (s *Storage) CreateUser(_user *notifier.User) error {
 
 func (s *Storage) UsersNumber() (int, error) {
 	var count int
-	err := s.DB.Table("users").Count(&count).Error
+	err := s.DB.Model(&User{}).Count(&count).Error
 	return count, err
 }

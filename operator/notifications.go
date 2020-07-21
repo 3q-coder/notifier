@@ -14,19 +14,25 @@ func (o *Operator) SubscribeToNotifications(username string, ws *websocket.Conn)
 	// close existing connection
 	if client, ok := o.clients[username]; ok == true {
 		client.finish()
+		// wait for closing existing connection
+		for {
+			if _, ok := o.clients[username]; ok != true {
+				break
+			}
+			time.Sleep(time.Millisecond)
+		}
 	}
-
-	// TODO rewrite - for not delete own client
-	time.Sleep(3 * time.Second)
 
 	// init channel
 	ctx, finish := context.WithCancel(context.Background())
 	inChan := make(chan ChanMessage, 10)
+	o.mutex.Lock()
 	o.clients[username] = Client{
 		username: username,
 		channel:  inChan,
 		finish:   finish,
 	}
+	o.mutex.Unlock()
 
 	// load unsent message to channel
 	notes, ids, _ := o.storage.NotificationsByUsername(username)
@@ -42,7 +48,9 @@ func (o *Operator) SubscribeToNotifications(username string, ws *websocket.Conn)
 
 	// remove connection
 	<-ctx.Done()
+	o.mutex.Lock()
 	delete(o.clients, username)
+	o.mutex.Unlock()
 }
 
 func reader(finish func(), ws *websocket.Conn) {
