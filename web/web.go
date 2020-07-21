@@ -7,12 +7,12 @@ import (
 )
 
 var Router *gin.Engine
-var operator notifier.Operator
+var operator Operator
 var storage notifier.Storage
 
-func Init(stor notifier.Storage, oper notifier.Operator) *gin.Engine {
-	operator = oper
+func Init(stor notifier.Storage) *gin.Engine {
 	storage = stor
+	operator = NewOperator(stor)
 
 	Router = gin.Default()
 	Router.LoadHTMLGlob(settings.StaticPath)

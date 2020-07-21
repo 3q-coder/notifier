@@ -1,14 +1,41 @@
-package operator
+package web
 
 import (
 	"context"
 	"encoding/json"
+	"sync"
 	"time"
 
 	"github.com/DryginAlexander/notifier"
 	"github.com/DryginAlexander/notifier/settings"
 	"github.com/gorilla/websocket"
 )
+
+type ChanMessage struct {
+	text string
+	id   uint
+}
+
+type Client struct {
+	username string
+	channel  chan ChanMessage
+	finish   func()
+}
+
+type Operator struct {
+	clients map[string]Client
+	storage notifier.Storage
+	mutex   *sync.Mutex
+}
+
+func NewOperator(stor notifier.Storage) Operator {
+	mu := &sync.Mutex{}
+	return Operator{
+		make(map[string]Client),
+		stor,
+		mu,
+	}
+}
 
 func (o *Operator) SubscribeToNotifications(username string, ws *websocket.Conn) {
 	// close existing connection

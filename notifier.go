@@ -1,8 +1,5 @@
 package notifier
 
-// TODO move dependency from root module
-import "github.com/gorilla/websocket"
-
 type User struct {
 	Username string
 	Password string
@@ -28,13 +25,4 @@ type Storage interface {
 	UsersNumber() (int, error)
 	NotesNumber() (int, error)
 	SentNotesNumber() (int, error)
-}
-
-type Operator interface {
-	// notification
-	SubscribeToNotifications(username string, client *websocket.Conn)
-	SendNotification(note *Notification)
-	SendNotificationAll(message string)
-	// metrics
-	OnlineClientsNumber() int
 }

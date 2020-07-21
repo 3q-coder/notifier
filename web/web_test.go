@@ -1,4 +1,4 @@
-package tests
+package web
 
 import (
 	"bytes"
@@ -13,9 +13,7 @@ import (
 
 	"github.com/DryginAlexander/notifier"
 	"github.com/DryginAlexander/notifier/models"
-	"github.com/DryginAlexander/notifier/operator"
 	"github.com/DryginAlexander/notifier/settings"
-	"github.com/DryginAlexander/notifier/web"
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
 	"github.com/stretchr/testify/assert"
@@ -23,7 +21,7 @@ import (
 
 var client = http.Client{Timeout: time.Duration(5 * time.Second)}
 
-func initSettingsAndDB(t *testing.T) (models.Storage, operator.Operator, *gin.Engine) {
+func initSettingsAndDB(t *testing.T) (models.Storage, *gin.Engine) {
 	err := settings.Init("../settings/test.env")
 	assert.Nil(t, err, "failed to initialize settings")
 	stor := models.NewStorage()
@@ -36,8 +34,7 @@ func initSettingsAndDB(t *testing.T) (models.Storage, operator.Operator, *gin.En
 	if err = stor.DB.Delete(&models.Notification{}).Error; err != nil {
 		t.Errorf("failed to delete all records in table Notifications %v", err)
 	}
-	oper := operator.NewOperator(&stor)
-	return stor, oper, web.Init(&stor, &oper)
+	return stor, Init(&stor)
 }
 
 func TestSubscribeToNotifications(t *testing.T) {
@@ -45,7 +42,7 @@ func TestSubscribeToNotifications(t *testing.T) {
 	msg := "test message"
 
 	// init server
-	stor, oper, router := initSettingsAndDB(t)
+	stor, router := initSettingsAndDB(t)
 	ts := httptest.NewServer(router)
 	defer ts.Close()
 
@@ -55,7 +52,7 @@ func TestSubscribeToNotifications(t *testing.T) {
 		Message:  msg,
 		Sent:     false,
 	}
-	oper.SendNotification(&note)
+	stor.CreateNotification(&note)
 
 	// connect to the server
 	url := "ws" + strings.TrimPrefix(ts.URL, "http")
@@ -84,7 +81,7 @@ func TestSendNotification(t *testing.T) {
 	msgs := [2]string{"test message", "test message 2"}
 
 	// init server
-	stor, _, router := initSettingsAndDB(t)
+	stor, router := initSettingsAndDB(t)
 	ts := httptest.NewServer(router)
 	defer ts.Close()
 
@@ -149,7 +146,7 @@ func TestSendNotificationAll(t *testing.T) {
 	}
 
 	// init server
-	stor, _, router := initSettingsAndDB(t)
+	stor, router := initSettingsAndDB(t)
 	ts := httptest.NewServer(router)
 	defer ts.Close()
 
@@ -225,7 +222,7 @@ func TestMetrics(t *testing.T) {
 	}
 
 	// init server
-	stor, _, router := initSettingsAndDB(t)
+	stor, router := initSettingsAndDB(t)
 	ts := httptest.NewServer(router)
 	defer ts.Close()
 
