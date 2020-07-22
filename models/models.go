@@ -1,6 +1,7 @@
 package models
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/DryginAlexander/notifier"
@@ -15,7 +16,7 @@ type Storage struct {
 	DB *gorm.DB
 }
 
-func NewStorage() Storage {
+func NewStorage() (Storage, error) {
 	var DBConnStr string
 	var dialect string
 	switch settings.DBDialect {
@@ -32,19 +33,18 @@ func NewStorage() Storage {
 			settings.DBName,
 		)
 		dialect = "postgres"
-		// default:
-		// 	return errors.New(fmt.Sprintf("unknown DBDialect %s", settings.DBDialect))
+	default:
+		return Storage{}, errors.New(fmt.Sprintf("unknown DBDialect %s", settings.DBDialect))
 	}
 
 	db, _ := gorm.Open(dialect, DBConnStr)
-	// DB.SetLogger(logger)
 	return Storage{
 		DB: db,
-	}
+	}, nil
 }
 
-func (s *Storage) CloseDB() {
-	s.DB.Close()
+func (s *Storage) CloseDB() error {
+	return s.DB.Close()
 }
 
 func (s *Storage) MigrateDB() error {

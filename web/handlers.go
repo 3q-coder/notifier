@@ -91,10 +91,14 @@ func register(c *gin.Context) {
 	username := c.PostForm("username")
 	password := c.PostForm("password")
 
-	var err error
+	status, err := storage.IsUsernameAvailable(username)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+
 	if strings.TrimSpace(password) == "" {
 		err = errors.New("The password can't be empty")
-	} else if !storage.IsUsernameAvailable(username) {
+	} else if !status {
 		err = errors.New("The username isn't available")
 	}
 
@@ -136,7 +140,11 @@ func performLogin(c *gin.Context) {
 	username := c.PostForm("username")
 	password := c.PostForm("password")
 
-	if storage.IsUserValid(username, password) {
+	status, err := storage.IsUserValid(username, password)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+	if status {
 		// TODO use secure token
 		token := username
 		c.SetCookie("token", token, 3600, "", "", false, false)

@@ -11,14 +11,26 @@ import (
 func main() {
 
 	fmt.Println("init settings")
-	_ = settings.Init("./settings/dev.env")
+	err := settings.Init("./settings/dev.env")
+	if err != nil {
+		fmt.Println("failed to init settings")
+		return
+	}
 
-	fmt.Println("connecting to db")
-	stor := models.NewStorage()
+	fmt.Println("init db")
+	stor, err := models.NewStorage()
+	if err != nil {
+		fmt.Println("failed to init db")
+		return
+	}
 	defer stor.CloseDB()
 
 	fmt.Println("applying migration if needed")
-	_ = stor.MigrateDB()
+	err = stor.MigrateDB()
+	if err != nil {
+		fmt.Println("failed to migrate db")
+		return
+	}
 
 	router := web.Init(&stor)
 	router.Run()

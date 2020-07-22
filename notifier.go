@@ -13,8 +13,8 @@ type Notification struct {
 
 type Storage interface {
 	// user
-	IsUsernameAvailable(username string) bool
-	IsUserValid(username, password string) bool
+	IsUsernameAvailable(username string) (bool, error)
+	IsUserValid(username, password string) (bool, error)
 	CreateUser(user *User) error
 	// notification
 	CreateNotification(note *Notification) (uint, error)

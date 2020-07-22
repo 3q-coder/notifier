@@ -10,23 +10,29 @@ type User struct {
 	notifier.User
 }
 
-func (s *Storage) IsUsernameAvailable(username string) bool {
+func (s *Storage) IsUsernameAvailable(username string) (bool, error) {
 	var user User
 	if err := s.DB.First(&user, "username = ?", username).Error; err != nil {
-		return true
+		if gorm.IsRecordNotFoundError(err) {
+			return true, nil
+		}
+		return false, err
 	}
-	return false
+	return false, nil
 }
 
-func (s *Storage) IsUserValid(username, password string) bool {
+func (s *Storage) IsUserValid(username, password string) (bool, error) {
 	var user User
 	if err := s.DB.First(&user, "username = ?", username).Error; err != nil {
-		return false
+		if gorm.IsRecordNotFoundError(err) {
+			return false, nil
+		}
+		return false, err
 	}
 	if user.Password != password {
-		return false
+		return false, nil
 	}
-	return true
+	return true, nil
 }
 
 func (s *Storage) CreateUser(_user *notifier.User) error {
