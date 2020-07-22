@@ -1,0 +1,55 @@
+<!--Embed the header.html template at this location-->
+{{ template "header.html" .}}
+
+<div class="container" id="">
+        <h1>Live messages</h1>
+</div>
+
+<div class="container" id="messages">
+    <div class="row"></div>
+</div>
+<script>
+    function getCookie(cname) {
+        var name = cname + "=";
+        var decodedCookie = decodeURIComponent(document.cookie);
+        var ca = decodedCookie.split(';');
+        for(var i = 0; i <ca.length; i++) {
+            var c = ca[i];
+            while (c.charAt(0) == ' ') {
+                c = c.substring(1);
+            }
+            if (c.indexOf(name) == 0) {
+                return c.substring(name.length, c.length);
+            }
+        }
+        return "";
+    }
+
+    function newMessage(msg) {
+        // dont do this!
+        // completly insecure to XSS
+        msgNode = '<div class="col-sm">'+msg.message+'</div>';
+
+        var node = document.createElement("div");
+        node.className = "row";
+        node.innerHTML = msgNode;
+
+        msgs = document.getElementById("messages")
+        msgs.insertBefore(node, msgs.childNodes[0]);
+    }
+    
+    var token = getCookie("token");
+    conn = new WebSocket("ws://127.0.0.1:8080/notifications?token="+token);
+    conn.onmessage = function (event) {
+        newMessage(JSON.parse(event.data));
+    };
+    conn.onclose = function (event) {
+        var msg = {
+            "message": "Connection closed",
+        };
+        newMessage(msg);
+    };
+</script>
+
+<!--Embed the footer.html template at this location-->
+{{ template "footer.html" .}}
