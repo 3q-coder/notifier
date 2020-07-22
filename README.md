@@ -1,2 +1,2 @@
-# websocket-server
-Test websocket-server in Golang.
+# Notifier
+Test websocket server in Golang.
