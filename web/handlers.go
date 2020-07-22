@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"strings"
 
@@ -30,39 +29,66 @@ func initNoteSocket(c *gin.Context) {
 	username := nameInterface.(string)
 	ws, err := upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		log.Fatal(err)
+		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 	go operator.SubscribeToNotifications(username, ws)
 }
 
 func sendNote(c *gin.Context) {
-	data, _ := ioutil.ReadAll(c.Request.Body)
+	data, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
 
 	note := notifier.Notification{}
-	_ = json.Unmarshal(data, &note)
+	err = json.Unmarshal(data, &note)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+	}
 	note.Sent = false
 
-	operator.SendNotification(&note)
+	err = operator.SendNotification(&note)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
 }
 
 func sendNoteAll(c *gin.Context) {
-	data, _ := ioutil.ReadAll(c.Request.Body)
+	data, err := ioutil.ReadAll(c.Request.Body)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
 
 	note := &notifier.Notification{}
-	_ = json.Unmarshal(data, note)
+	err = json.Unmarshal(data, note)
+	if err != nil {
+		c.AbortWithStatus(http.StatusBadRequest)
+	}
 
-	operator.SendNotificationAll(note.Message)
+	err = operator.SendNotificationAll(note.Message)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
 }
 
 func showNewsPage(c *gin.Context) {
-	render(c, gin.H{"title": "News Page"}, "news.html")
+	c.HTML(http.StatusOK, "news.html", gin.H{"title": "News Page"})
 }
 
 func metrics(c *gin.Context) {
-	allClients, _ := storage.UsersNumber()
+	allClients, err := storage.UsersNumber()
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
 	onlineClients := operator.OnlineClientsNumber()
-	allNotes, _ := storage.NotesNumber()
-	sentNotes, _ := storage.SentNotesNumber()
+	allNotes, err := storage.NotesNumber()
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
+	sentNotes, err := storage.SentNotesNumber()
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
 
 	output := fmt.Sprintf("all_clients %d\nonline_clients %d\nall_note %d\nsent_note %d\n",
 		allClients, onlineClients, allNotes, sentNotes)
@@ -74,17 +100,11 @@ func metrics(c *gin.Context) {
 // ------------------------------------------------------------------
 
 func showIndexPage(c *gin.Context) {
-	render(c, gin.H{"title": "Home Page"}, "index.html")
+	c.HTML(http.StatusOK, "index.html", gin.H{"title": "Home Page"})
 }
 
 func showRegistrationPage(c *gin.Context) {
-	c.HTML(
-		http.StatusOK,
-		"register.html",
-		gin.H{
-			"title": "Register",
-		},
-	)
+	c.HTML(http.StatusOK, "register.html", gin.H{"title": "Register"})
 }
 
 func register(c *gin.Context) {
@@ -119,21 +139,21 @@ func register(c *gin.Context) {
 		Username: username,
 		Password: password,
 	}
-	storage.CreateUser(&user)
+	err = storage.CreateUser(&user)
+	if err != nil {
+		c.AbortWithStatus(http.StatusInternalServerError)
+	}
 
 	// If the user is created, set the token in a cookie and log the user in
 	token := username
-	c.SetCookie("token", token, 3600, "", "", false, false)
+	c.SetCookie("token", token, 3600, "", "", false, true)
 	c.Set("is_logged_in", true)
 
-	render(c, gin.H{"title": "Successful registration & Login"},
-		"login-successful.html")
+	c.HTML(http.StatusOK, "login-successful.html", gin.H{"title": "Successful registration"})
 }
 
 func showLoginPage(c *gin.Context) {
-	render(c, gin.H{
-		"title": "Login",
-	}, "login.html")
+	c.HTML(http.StatusOK, "login.html", gin.H{"title": "Login"})
 }
 
 func performLogin(c *gin.Context) {
@@ -145,36 +165,21 @@ func performLogin(c *gin.Context) {
 		c.AbortWithStatus(http.StatusInternalServerError)
 	}
 	if status {
-		// TODO use secure token
 		token := username
-		c.SetCookie("token", token, 3600, "", "", false, false)
+		c.SetCookie("token", token, 3600, "", "", false, true)
 		c.Set("is_logged_in", true)
-
-		render(c, gin.H{
-			"title": "Successful Login"}, "login-successful.html")
+		c.HTML(http.StatusOK, "login-successful.html", gin.H{
+			"title": "Successful Login",
+		})
 	} else {
 		c.HTML(http.StatusBadRequest, "login.html", gin.H{
 			"ErrorTitle":   "Login Failed",
-			"ErrorMessage": "Invalid credentials provided"})
+			"ErrorMessage": "Invalid credentials provided",
+		})
 	}
 }
 
 func logout(c *gin.Context) {
 	c.SetCookie("token", "", -1, "", "", false, true)
-
 	c.Redirect(http.StatusTemporaryRedirect, "/")
-}
-
-func render(c *gin.Context, data gin.H, templateName string) {
-	loggedInInterface, _ := c.Get("is_logged_in")
-	data["is_logged_in"] = loggedInInterface.(bool)
-
-	switch c.Request.Header.Get("Accept") {
-	case "application/json":
-		c.JSON(http.StatusOK, data["payload"])
-	case "application/xml":
-		c.XML(http.StatusOK, data["payload"])
-	default:
-		c.HTML(http.StatusOK, templateName, data)
-	}
 }

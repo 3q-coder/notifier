@@ -37,7 +37,7 @@ func NewOperator(stor notifier.Storage) Operator {
 	}
 }
 
-func (o *Operator) SubscribeToNotifications(username string, ws *websocket.Conn) {
+func (o *Operator) SubscribeToNotifications(username string, ws *websocket.Conn) error {
 	// close existing connection
 	if client, ok := o.clients[username]; ok == true {
 		client.finish()
@@ -62,7 +62,10 @@ func (o *Operator) SubscribeToNotifications(username string, ws *websocket.Conn)
 	o.mutex.Unlock()
 
 	// load unsent message to channel
-	notes, ids, _ := o.storage.NotificationsByUsername(username)
+	notes, ids, err := o.storage.NotificationsByUsername(username)
+	if err != nil {
+		return err
+	}
 	for i, note := range notes {
 		inChan <- ChanMessage{
 			text: note.Message,
@@ -74,10 +77,14 @@ func (o *Operator) SubscribeToNotifications(username string, ws *websocket.Conn)
 	go writer(ctx, inChan, ws, o.storage)
 
 	// remove connection
-	<-ctx.Done()
-	o.mutex.Lock()
-	delete(o.clients, username)
-	o.mutex.Unlock()
+	go func() {
+		<-ctx.Done()
+		o.mutex.Lock()
+		delete(o.clients, username)
+		o.mutex.Unlock()
+	}()
+
+	return nil
 }
 
 func reader(finish func(), ws *websocket.Conn) {
@@ -107,8 +114,6 @@ func writer(ctx context.Context, inChan <-chan ChanMessage, ws *websocket.Conn, 
 		case <-ctx.Done():
 			return
 		case msg := <-inChan:
-			// TODO add msg respond
-
 			data, _ := json.Marshal(map[string]string{"message": msg.text})
 
 			ws.SetWriteDeadline(time.Now().Add(settings.WriteWait))
@@ -135,8 +140,11 @@ func writer(ctx context.Context, inChan <-chan ChanMessage, ws *websocket.Conn, 
 	}
 }
 
-func (o *Operator) SendNotification(note *notifier.Notification) {
-	id, _ := o.storage.CreateNotification(note)
+func (o *Operator) SendNotification(note *notifier.Notification) error {
+	id, err := o.storage.CreateNotification(note)
+	if err != nil {
+		return err
+	}
 
 	// send message if client online
 	if client, ok := o.clients[note.Username]; ok == true {
@@ -146,10 +154,14 @@ func (o *Operator) SendNotification(note *notifier.Notification) {
 		}
 
 	}
+	return nil
 }
 
-func (o *Operator) SendNotificationAll(message string) {
-	o.storage.CreateNotificationAll(message)
+func (o *Operator) SendNotificationAll(message string) error {
+	err := o.storage.CreateNotificationAll(message)
+	if err != nil {
+		return err
+	}
 
 	// send message to all online clients
 	for _, client := range o.clients {
@@ -161,6 +173,7 @@ func (o *Operator) SendNotificationAll(message string) {
 			}
 		}
 	}
+	return nil
 }
 
 func (o *Operator) OnlineClientsNumber() int {

@@ -1,19 +1,22 @@
 package web
 
-func initializeRoutes() {
+import (
+	"github.com/gin-gonic/gin"
+)
 
-	Router.Use(setUserStatus())
+func initializeRoutes(router *gin.Engine) {
 
-	Router.GET("/", showIndexPage)
-	Router.GET("/news", ensureLoggedIn(), showNewsPage)
-	Router.GET("/notifications", ensureLoggedIn(), initNoteSocket)
+	router.Use(setUserStatus())
+	router.GET("/", showIndexPage)
+	router.GET("/news", ensureLoggedIn(), showNewsPage)
+	router.GET("/notifications", ensureLoggedIn(), initNoteSocket)
 
-	Router.POST("/send-note", ensureApiKey(), sendNote)
-	Router.POST("/send-note-all", ensureApiKey(), sendNoteAll)
+	router.POST("/send-note", ensureApiKey(), sendNote)
+	router.POST("/send-note-all", ensureApiKey(), sendNoteAll)
 
-	Router.GET("/metrics", ensureApiKey(), metrics)
+	router.GET("/metrics", ensureApiKey(), metrics)
 
-	userRoutes := Router.Group("/u")
+	userRoutes := router.Group("/u")
 	{
 		userRoutes.GET("/register", ensureNotLoggedIn(), showRegistrationPage)
 		userRoutes.POST("/register", ensureNotLoggedIn(), register)

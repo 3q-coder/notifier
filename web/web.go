@@ -6,7 +6,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-var Router *gin.Engine
 var operator Operator
 var storage notifier.Storage
 
@@ -14,9 +13,9 @@ func Init(stor notifier.Storage) *gin.Engine {
 	storage = stor
 	operator = NewOperator(stor)
 
-	Router = gin.Default()
-	Router.LoadHTMLGlob(settings.StaticPath)
-	initializeRoutes()
+	router := gin.Default()
+	router.LoadHTMLGlob(settings.StaticPath)
+	initializeRoutes(router)
 
-	return Router
+	return router
 }
