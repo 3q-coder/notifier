@@ -3,9 +3,11 @@ package web
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"strconv"
 	"strings"
 	"testing"
@@ -34,6 +36,12 @@ func initSettingsAndDB(t *testing.T) (models.Storage, *gin.Engine) {
 	if err = stor.DB.Delete(&models.Notification{}).Error; err != nil {
 		t.Errorf("failed to delete all records in table Notifications %v", err)
 	}
+
+	// client with cookies
+	jar := &myjar{}
+	jar.jar = make(map[string][]*http.Cookie)
+	client.Jar = jar
+
 	return stor, Init(&stor)
 }
 
@@ -295,4 +303,73 @@ func TestMetrics(t *testing.T) {
 		"all_clients 100\nonline_clients 50\nall_note 100\nsent_note 50\n",
 		string(body),
 	)
+}
+
+func TestAuthorization(t *testing.T) {
+	name := "test"
+	password := "test"
+
+	// init server
+	stor, router := initSettingsAndDB(t)
+	ts := httptest.NewServer(router)
+	defer ts.Close()
+
+	// register
+	url := ts.URL + "/u/register"
+	data := fmt.Sprintf("username=%v&password=%v", name, password)
+	body := bytes.NewBufferString(data)
+	req, _ := http.NewRequest(http.MethodPost, url, body)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("Content-Length", strconv.Itoa(len(data)))
+
+	resp, err := client.Do(req)
+	assert.Nil(t, err, "failed to register", err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	resp.Body.Close()
+
+	// check that user was created in db
+	time.Sleep(100 * time.Millisecond)
+	var userDB models.User
+	err = stor.DB.Where("username = ? AND password = ?", name, password).First(&userDB).Error
+	assert.Nil(t, err, "failed to load note from db", err)
+
+	// logout
+	url = ts.URL + "/u/logout"
+	req, _ = http.NewRequest(http.MethodGet, url, nil)
+
+	resp, err = client.Do(req)
+	assert.Nil(t, err, "failed to logout", err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	resp.Body.Close()
+
+	jar := &myjar{}
+	jar.jar = make(map[string][]*http.Cookie)
+	client.Jar = jar
+
+	// login
+	url = ts.URL + "/u/login"
+	data = fmt.Sprintf("username=%v&password=%v", name, password)
+	body = bytes.NewBufferString(data)
+	req, _ = http.NewRequest(http.MethodPost, url, body)
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("Content-Length", strconv.Itoa(len(data)))
+
+	resp, err = client.Do(req)
+	assert.Nil(t, err, "failed to login", err)
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	resp.Body.Close()
+
+}
+
+// client with cookies
+type myjar struct {
+	jar map[string][]*http.Cookie
+}
+
+func (p *myjar) SetCookies(u *url.URL, cookies []*http.Cookie) {
+	p.jar[u.Host] = cookies
+}
+
+func (p *myjar) Cookies(u *url.URL) []*http.Cookie {
+	return p.jar[u.Host]
 }
